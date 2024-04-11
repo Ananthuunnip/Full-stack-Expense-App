@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>EXPENCE TRACKER</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+    <div class="container text-center" id="main-container">
+        <div class="row">
+            <div class="col">
+                <h1 class="p-3 text-primary-emphasis bg-primary-subtle border border-primary-subtle rounded-3">
+                    Let's Track EXPENCES
+                </h1>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col" id="nav">
+                <form action="/addexpence" method="post" id="addForm">
+                    <label for="exp-amound">Choose Expence Amound</label>
+                    <input type="number" id="exp-amound" name="amound">
+                    <label for="discription">Choose Discription</label>
+                    <input type="text" id="discription" name="discription">
+                    <label for="dropbox">Choose CATOGARY</label>
+                    <select class="form-select" id="dropbox" name="category">
+                        <option selected>SELCET</option>
+                        <option>MOVIE</option>
+                        <option>TRAVEL</option>
+                        <option>PETROL</option>
+                        <option>FOOD</option>
+                        <option>TRIP</option>
+                    </select>
+                    <input type="submit" value="SUBMIT!" class="btn btn-secondary btn-lg" id="submit">
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="container text-center" id="output-container">
+        <div class="col">
+            <ul id="items" class="list-group"></ul>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.5/axios.min.js"></script>
+    <script>
+        var form = document.getElementById('addForm');
+        const itemList = document.getElementById("items");
+        async function loadAndDisplayStoredItems() {
+            try{
+                const itemList = document.getElementById("items");
+                const res = await axios.get("http://localhost:4002/fetch-expence");
+                // console.log(res);
+                res.data.forEach((user) => {
+                    const li = document.createElement("li");
+                    li.className ="list-group-item list-group-item-action list-group-item-dark w-78 m-1";
+                    li.appendChild(document.createTextNode(`${user.amound} ${user.discription} ${user.category}  ${user.id}`)
+                    );
+                    const editButton = document.createElement("button");
+                    const deleteButton = document.createElement("button");
+                    editButton.innerHTML = "edit";
+                    deleteButton.innerHTML = "delete";
+                    editButton.className ="btn btn-outline-secondary float-end mx-2 btn-sm edit";
+                    deleteButton.className = "btn btn-outline-danger btn-sm float-end delete";
+                    li.appendChild(editButton);
+                    li.appendChild(deleteButton);
+                    itemList.appendChild(li);
+                });
+                
+            }catch(err){
+                console.log(err);
+            }
+        }
+        async function deleteUser(e) {
+            console.log("delete")
+            try {
+                if (e.target.classList.contains("delete")) {
+                    let id;
+                    let userdata = e.target.parentNode.firstChild.wholeText.split(" ");
+                    const amound = userdata[0];
+                    const category = userdata[userdata.length-3];
+                    // const userInfo = { amound, category };
+                    const res = await axios.get(`http://localhost:4002/fetch-expence`);
+                    res.data.forEach((user) => {
+                        console.log(user.amound);
+                        if (user.amound == amound && user.category == category) {
+                            console.log("enters");
+                            console.log(user.id);
+                            id = user.id;
+                        }
+                    });
+                    const deleteUser = await axios.get(
+                        `http://localhost:4002/deleteUser/${id}`
+                    );
+                    window.location.reload();
+                }
+            } catch (err) {
+                console.log(err);
+            }
+        }
+
+        async function editExpense(e) {
+            try {
+                const amountValue = document.getElementById("exp-amound");
+                const descriptionValue = document.getElementById("discription");
+                const categoryValue = document.getElementById("dropbox");
+                const submitBtn = document.getElementById("submit");
+                console.log(amountValue.value, descriptionValue, categoryValue);
+                // console.log();
+                const id = e.target.parentNode.firstChild.wholeText.split(" ")[4];
+                console.log("here : " + id);
+                if (e.target.classList.contains("edit")) {
+                    const res = await axios.get("http://localhost:4002/fetch-expence");
+                    res.data.forEach((expense) => {
+                        // console.log("searching for id "+ id);
+                        if (expense.id == id) {
+                            console.log("Yeh id aayi hai res main: " + expense.id);
+                            amountValue.value = expense.amound;
+                            descriptionValue.value = expense.discription;
+                            categoryValue.value = expense.category;
+                            submitBtn.value = "Update";
+                            
+                            submitBtn.addEventListener("click", async (e)=> {
+                                let upamount = amountValue.value
+                                let updescription = descriptionValue.value
+                                let upcategory = categoryValue.value
+                                e.preventDefault();
+                                console.log("request to backend for edit");
+                                console.log("hello : " + upamount  + updescription  + upcategory)
+                                const res = await axios.post(
+                                    `http://localhost:4002/editExpense/${id}`,
+                                    {
+                                        amount: upamount,
+                                        discription: updescription,
+                                        category: upcategory,
+                                    }
+                                );
+                                // submitBtn.removeEventListener("click", update);
+                                submitBtn.textContent = "Submit";
+                                window.location.reload();
+                            });
+                        }
+                        });
+                    }
+                } catch {
+                    (err) => console.log(err);
+                }
+            }
+            document.addEventListener("DOMContentLoaded", loadAndDisplayStoredItems);
+            itemList.addEventListener("click", (e) => {
+                deleteUser(e);
+            });
+            itemList.addEventListener("click", (e) => {
+                console.log("calling Edit");
+                editExpense(e);
+                console.log("Finish Edit");
+            });
+            </script>
+</body>
+
+</html>
+
